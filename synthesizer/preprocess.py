@@ -29,9 +29,10 @@ def preprocess_dataset(datasets_root: Path, out_dir: Path, n_processes: int,
 
     # Preprocess the dataset
     speaker_dirs = list(chain.from_iterable(input_dir.glob("*") for input_dir in input_dirs))
-    func = partial(preprocess_speaker, out_dir=out_dir, skip_existing=skip_existing, 
+    func = partial(preprocess_speaker, out_dir=out_dir, skip_existing=skip_existing,
                    hparams=hparams, no_alignments=no_alignments)
     job = Pool(n_processes).imap(func, speaker_dirs)
+    # job = map(func, speaker_dirs)
     for speaker_metadata in tqdm(job, datasets_name, len(speaker_dirs), unit="speakers"):
         for metadatum in speaker_metadata:
             metadata_file.write("|".join(str(x) for x in metadatum) + "\n")
@@ -55,7 +56,13 @@ def preprocess_speaker(speaker_dir, out_dir: Path, skip_existing: bool, hparams,
     metadata = []
     for book_dir in speaker_dir.glob("*"):
         if no_alignments:
-            # Gather the utterance audios and texts
+            # It seems that LibriTTS updated their data format so I'm doing this
+            trans_path = next(book_dir.glob("*.trans.txt"))
+            with trans_path.open("r") as trans_file:
+                transcript = [line.rstrip().split(" ", 1) for line in trans_file]
+                transcript = {idx: text for idx, text in transcript}
+
+                # Gather the utterance audios and texts
             # LibriTTS uses .wav but we will include extensions for compatibility with other datasets
             extensions = ["*.wav", "*.flac", "*.mp3"]
             for extension in extensions:
@@ -67,17 +74,19 @@ def preprocess_speaker(speaker_dir, out_dir: Path, skip_existing: bool, hparams,
                     if hparams.rescale:
                         wav = wav / np.abs(wav).max() * hparams.rescaling_max
 
-                    # Get the corresponding text
-                    # Check for .txt (for compatibility with other datasets)
-                    text_fpath = wav_fpath.with_suffix(".txt")
-                    if not text_fpath.exists():
-                        # Check for .normalized.txt (LibriTTS)
-                        text_fpath = wav_fpath.with_suffix(".normalized.txt")
-                        assert text_fpath.exists()
-                    with text_fpath.open("r") as text_file:
-                        text = "".join([line for line in text_file])
-                        text = text.replace("\"", "")
-                        text = text.strip()
+                    # # Get the corresponding text
+                    # # Check for .txt (for compatibility with other datasets)
+                    # text_fpath = wav_fpath.with_suffix(".txt")
+                    # if not text_fpath.exists():
+                    #     # Check for .normalized.txt (LibriTTS)
+                    #     text_fpath = wav_fpath.with_suffix(".normalized.txt")
+                    #     assert text_fpath.exists()
+                    # with text_fpath.open("r") as text_file:
+                    #     text = "".join([line for line in text_file])
+                    #     text = text.replace("\"", "")
+                    #     text = text.strip()
+
+                    text = transcript[wav_fpath.name.replace(extension[1:], "")]
 
                     # Process the utterance
                     metadata.append(process_utterance(wav, text, out_dir, str(wav_fpath.with_suffix("").name),

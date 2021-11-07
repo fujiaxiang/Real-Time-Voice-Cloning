@@ -44,4 +44,6 @@ if __name__ == "__main__":
     # Run the training
     print_args(args, parser)
     train(**vars(args))
-    
+
+
+# python encoder_train.py test_102701 "./data/SV2TTS/encoder"

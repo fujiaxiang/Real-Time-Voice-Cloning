@@ -56,4 +56,11 @@ if __name__ == "__main__":
     # Preprocess the dataset
     print_args(args, parser)
     args.hparams = hparams.parse(args.hparams)
+    # print('=' * 20)
+    # print(args)
+    # print('=' * 20)
     preprocess_dataset(**vars(args))
+
+
+# find . -name '.DS_Store' -type f -delete
+# python synthesizer_preprocess_audio.py data --subfolders train-clean-100 --no_alignments -n 2

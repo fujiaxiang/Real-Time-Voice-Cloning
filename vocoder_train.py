@@ -53,4 +53,6 @@ if __name__ == "__main__":
     # Run the training
     print_args(args, parser)
     train(**vars(args))
-    
+
+
+# python vocoder_train.py id_20211031 data

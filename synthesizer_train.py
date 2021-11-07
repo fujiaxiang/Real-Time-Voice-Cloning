@@ -33,3 +33,6 @@ if __name__ == "__main__":
 
     # Run the training
     train(**vars(args))
+
+
+# python synthesizer_train.py 20211031.1 data/SV2TTS/synthesizer

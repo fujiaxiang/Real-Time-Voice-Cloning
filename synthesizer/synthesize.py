@@ -1,3 +1,5 @@
+from functools import partial
+
 import torch
 from torch.utils.data import DataLoader
 from synthesizer.hparams import hparams_debug_string
@@ -11,8 +13,11 @@ from tqdm import tqdm
 import platform
 
 def run_synthesis(in_dir, out_dir, model_dir, hparams):
+    out_dir = Path(out_dir)
+    out_dir.mkdir(exist_ok=True)
+
     # This generates ground truth-aligned mels for vocoder training
-    synth_dir = Path(out_dir).joinpath("mels_gta")
+    synth_dir = out_dir.joinpath("mels_gta")
     synth_dir.mkdir(exist_ok=True)
     print(hparams_debug_string())
 
@@ -62,7 +67,8 @@ def run_synthesis(in_dir, out_dir, model_dir, hparams):
 
     dataset = SynthesizerDataset(metadata_fpath, mel_dir, embed_dir, hparams)
     data_loader = DataLoader(dataset,
-                             collate_fn=lambda batch: collate_synthesizer(batch, r, hparams),
+                             # collate_fn=lambda batch: collate_synthesizer(batch, r, hparams),
+                             collate_fn=partial(collate_synthesizer, r=r, hparams=hparams),
                              batch_size=hparams.synthesis_batch_size,
                              num_workers=2 if platform.system() != "Windows" else 0,
                              shuffle=False,

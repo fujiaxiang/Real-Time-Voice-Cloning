@@ -57,3 +57,5 @@ if __name__ == "__main__":
 
     run_synthesis(args.in_dir, args.out_dir, args.model_dir, modified_hp)
 
+
+# python vocoder_preprocess.py data

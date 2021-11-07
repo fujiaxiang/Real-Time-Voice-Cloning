@@ -6,6 +6,7 @@ numpy==1.19.3; platform_system == "Windows"
 numpy==1.19.4; platform_system != "Windows"
 scipy>=1.0.0
 tqdm
+tensorboard
 sounddevice
 SoundFile
 Unidecode
@@ -14,3 +15,4 @@ PyQt5
 multiprocess
 numba
 webrtcvad; platform_system != "Windows"
+pandas

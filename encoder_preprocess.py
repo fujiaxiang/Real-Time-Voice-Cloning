@@ -68,3 +68,5 @@ if __name__ == "__main__":
     for dataset in args.pop("datasets"):
         print("Preprocessing %s" % dataset)
         preprocess_func[dataset](**args)
+
+# python encoder_preprocess.py ./data/
