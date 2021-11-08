@@ -12,7 +12,7 @@ class MultispeakerEmotionalSynthesizer(Tacotron):
                  dropout, stop_threshold, speaker_embedding_size + emotion_embedding_size)
 
     def forward(self, x, m, speaker_embedding, emotion_embedding=None):
-        # Concatenating the speaker embedding and emotion_embedding, and reusing existing
-        # model architecture
+        # Concatenating the speaker embedding and emotion_embedding,
+        # and reusing existing model architecture defined in super class
         embed = torch.cat([speaker_embedding, emotion_embedding], dim=1)
         return super().forward(x, m, embed)

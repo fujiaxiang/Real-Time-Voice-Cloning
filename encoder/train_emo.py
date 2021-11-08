@@ -12,6 +12,8 @@ from encoder.emo_models import EmoEncoder
 
 
 def evaluate(model, loader, loss_fn, device):
+    """Evaluates the accuracy and loss of model on given data loader"""
+
     total, correct, total_loss = 0, 0, 0
     model.eval()
     with torch.no_grad():
@@ -35,7 +37,7 @@ def evaluate(model, loader, loss_fn, device):
 
 
 def collate_fn(batch):
-    """Padds batch of variable length"""
+    """Collates a batch of padded variable length inputs"""
 
     ids, inputs, labels, texts = zip(*batch)
     labels = torch.tensor(labels)
@@ -51,6 +53,8 @@ def collate_fn(batch):
 
 def train(run_id: str, epoch: int, meta_data_path: Path, models_dir: Path, save_every: int,
           backup_every: int, eval_every: int, force_restart: bool):
+    """Trains the EmoEncoder model on IEMOCAP dataset"""
+
     # Create a dataset and a dataloader
     train_dataset = IemocapDataset(meta_data_path)
     train_loader = DataLoader(

@@ -9,6 +9,7 @@ from encoder.params_data import *
 
 
 def proc_t_file(fp):
+    """Processes a transcript file and returns a dataframe of uttid and text transcripts"""
     res = []
 
     with fp.open("r") as f:
@@ -27,6 +28,7 @@ def proc_t_file(fp):
 
 
 def proc_cat_file(fp, labels):
+    """Processes a emotion category label file and update the labels dictionary"""
     with fp.open("r") as f:
         for line in f:
             uttid, cats = line.split(" ", 1)
@@ -40,7 +42,7 @@ def proc_cat_file(fp, labels):
 
 
 def wav_to_mel(fp):
-
+    """Preprocess a wav file and converts it to mel spectrogram in numpy array"""
     wav = audio.preprocess_wav(fp)
 
     if len(wav) == 0:
@@ -63,12 +65,14 @@ labels = {}
 for sess in sessions:
     trans = sess.joinpath('dialog').joinpath('transcriptions')
 
+    # Gets the text transcripts
     for t_file in trans.glob("*.txt"):
         df = proc_t_file(t_file)
         df['session'] = str(sess)
         df['t_file'] = str(t_file)
         res.append(df)
 
+    # Gets the locations of raw wav files
     wavs_dir = sess.joinpath('sentences').joinpath('wav')
     for conv in wavs_dir.glob('Ses*'):
         for wav_file in conv.glob("*.wav"):
@@ -76,11 +80,13 @@ for sess in sessions:
             w_file = str(wav_file)
             w_files[uttid] = w_file
 
+    # Get the emotion category labels
     labels_dir = sess.joinpath('dialog').joinpath('EmoEvaluation').joinpath('Categorical')
     for cat_file in labels_dir.glob('*_cat.txt'):
         proc_cat_file(cat_file, labels)
 
 
+# Combine processed transcripts, emotion labels and paths to raw wav files
 df = pd.concat(res)
 df['w_file'] = df['uttid'].map(w_files)
 df['labels'] = df['uttid'].map(labels)
@@ -91,6 +97,7 @@ output_dir = Path("data/iemocap/encoder/mel")
 output_dir.mkdir(parents=True, exist_ok=True)
 
 
+# Generates mel spectrogram arrays from wav files
 m_files = []
 for _, row in tqdm(df.iterrows(), total=len(df)):
     w_file = row['w_file']
@@ -103,12 +110,14 @@ for _, row in tqdm(df.iterrows(), total=len(df)):
         np.save(out_fpath, mel)
         m_files.append(out_fpath)
 
+# Record the paths to generated mel spectrogram arrays
 df['m_file'] = m_files
 
 
 df = df.explode('labels')
 print(df.count())
 
+# Save the metadata after preprocessing
 df.to_csv("iemocap_meta.csv", index=False)
 
 
