@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from sklearn.model_selection import StratifiedShuffleSplit
 
 from encoder import audio
 from encoder.params_data import *
@@ -56,7 +57,8 @@ def wav_to_mel(fp):
     return frames
 
 
-data_root = Path('data/downloaded/IEMOCAP_full_release')
+# data_root = Path('data/downloaded/IEMOCAP_full_release')
+data_root = Path('data/downloaded/iemocap')
 sessions = data_root.glob("Session*")
 
 res = []
@@ -120,5 +122,17 @@ print(df.count())
 # Save the metadata after preprocessing
 df.to_csv("iemocap_meta.csv", index=False)
 
+# Split data into train, dev and test
+sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=0)
+train_idx, dev_test_idx = list(sss.split(df, df['labels']))[0]
+
+sss = StratifiedShuffleSplit(n_splits=1, test_size=0.5, random_state=0)
+dev_idx, test_idx = list(sss.split(df.iloc[dev_test_idx], df.iloc[dev_test_idx]['labels']))[0]
+
+df_train, df_dev, df_test = df.iloc[train_idx], df.iloc[dev_idx], df.iloc[test_idx]
+
+df_train.to_csv("iemocap_meta_train.csv", index=False)
+df_dev.to_csv("iemocap_meta_dev.csv", index=False)
+df_test.to_csv("iemocap_meta_test.csv", index=False)
 
 # python -m encoder.prep_iemocap

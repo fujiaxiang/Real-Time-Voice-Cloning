@@ -22,7 +22,7 @@ class EmoEncoder(nn.Module):
 
         self.linear2 = nn.Linear(in_features=model_embedding_size,
                                  out_features=len(emo_categories)).to(device)
-        self.relu2 = torch.nn.ReLU().to(device)
+        # self.relu2 = torch.nn.ReLU().to(device)
 
     def forward(self, utterances, hidden_init=None):
         """
@@ -44,6 +44,7 @@ class EmoEncoder(nn.Module):
         # L2-normalize it
         embeds = embeds_raw / (torch.norm(embeds_raw, dim=1, keepdim=True) + 1e-5)
 
-        pred = self.relu2(self.linear2(embeds))
+        # pred = self.relu2(self.linear2(embeds))
+        pred = self.linear2(embeds)
 
         return embeds, pred
