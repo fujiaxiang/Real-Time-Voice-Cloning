@@ -161,7 +161,7 @@ def train(run_id: str, epoch: int, train_meta_path: Path, dev_meta_path: Path, t
 if __name__ == "__main__":
     train(
         run_id="test2",
-        epoch=1000,
+        epoch=3000,
         train_meta_path=Path("iemocap_meta_train.csv"),
         dev_meta_path=Path("iemocap_meta_dev.csv"),
         test_meta_path=Path("iemocap_meta_test.csv"),

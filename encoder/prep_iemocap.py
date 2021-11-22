@@ -116,7 +116,7 @@ for _, row in tqdm(df.iterrows(), total=len(df)):
 df['m_file'] = m_files
 
 
-df = df.explode('labels')
+df = df.explode('labels').drop_duplicates('uttid')
 print(df.count())
 
 # Save the metadata after preprocessing

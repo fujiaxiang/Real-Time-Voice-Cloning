@@ -32,7 +32,6 @@ def create_embeddings(model, loader, enc_type='speaker'):
                 embeds, _ = model(packed_features)
             embeds = embeds.cpu().detach().numpy()
             results.append(embeds)
-            break
     return results
 
 
