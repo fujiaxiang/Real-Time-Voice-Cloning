@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 import torch
@@ -95,9 +96,12 @@ def train(run_id: str, epoch: int, train_meta_path: Path, dev_meta_path: Path, t
     if not force_restart:
         if state_fpath.exists():
             print("Found existing model \"%s\", loading it and resuming training." % run_id)
-            checkpoint = torch.load(state_fpath)
+            if sys.platform == 'darwin':
+                checkpoint = torch.load(state_fpath, map_location=torch.device('cpu'))
+            else:
+                checkpoint = torch.load(state_fpath)
             init_step = checkpoint["step"]
-            model.load_state_dict(checkpoint["model_state"])
+            model.load_state_dict(checkpoint["model_state"], strict=False)
             optimizer.load_state_dict(checkpoint["optimizer_state"])
             optimizer.param_groups[0]["lr"] = learning_rate_init
         else:
@@ -160,7 +164,7 @@ def train(run_id: str, epoch: int, train_meta_path: Path, dev_meta_path: Path, t
 
 if __name__ == "__main__":
     train(
-        run_id="test2",
+        run_id="transfer_1",
         epoch=3000,
         train_meta_path=Path("iemocap_meta_train.csv"),
         dev_meta_path=Path("iemocap_meta_dev.csv"),
