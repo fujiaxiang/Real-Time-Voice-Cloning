@@ -152,7 +152,6 @@ def train(run_id: str, epoch: int, learning_rate: float, train_meta_path: Path, 
                 metrics = evaluate(model, dev_loader, loss_fn, device)
                 writer.add_scalar('Loss/train', mean_loss, step)
                 writer.add_scalar('Loss/dev', metrics['loss'], step)
-                writer.add_scalar('Accuracy/dev', metrics['accuracy'], step)
 
             # Overwrite the latest version of the model
             if save_every != 0 and step % save_every == 0:
@@ -181,7 +180,7 @@ if __name__ == "__main__":
     train(
         run_id="triplet_1",
         epoch=1000,
-        learning_rate=learning_rate_init,
+        learning_rate=0.00002,
         train_meta_path=Path("iemocap_meta_train.csv"),
         dev_meta_path=Path("iemocap_meta_dev.csv"),
         test_meta_path=Path("iemocap_meta_test.csv"),

@@ -60,7 +60,7 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
         device = torch.device("cuda")
 
         for session in training_schedule:
-            _, _, _, batch_size = session
+            _, _, _, batch_size, _ = session
             if batch_size % torch.cuda.device_count() != 0:
                 raise ValueError("`batch_size` must be evenly divisible by n_gpus!")
     else:
@@ -208,11 +208,11 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
                 stream(msg)
 
                 # Backup or save model as appropriate
-                if backup_every != 0 and step % backup_every == 0 : 
+                if backup_every != 0 and step % backup_every == 0 and i % batch_split == 0: 
                     backup_fpath = Path("{}/{}_{}k.pt".format(str(weights_fpath.parent), run_id, k))
                     model.save(backup_fpath, optimizer)
 
-                if save_every != 0 and step % save_every == 0 : 
+                if save_every != 0 and step % save_every == 0 and i % batch_split == 0: 
                     # Must save latest optimizer state to ensure that resuming training
                     # doesn't produce artifacts
                     model.save(weights_fpath, optimizer)
@@ -289,7 +289,7 @@ if __name__ == "__main__":
     data_paths = {k: Path(v) for k, v in data_paths.items()}
 
     train(
-        run_id="test1",
+        run_id="synthesizer_1",
         data_paths=data_paths,
         models_dir=Path("synthesizer/saved_models/"),
         training_schedule=[  # (r, lr, step, batch_size, batch_split)

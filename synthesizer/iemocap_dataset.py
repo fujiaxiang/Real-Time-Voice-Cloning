@@ -54,7 +54,7 @@ def collate_fn(batch, r):
     mel_lengths = torch.tensor([x.shape[0] for x in mels])
 
     # padding
-    texts = torch.nn.utils.rnn.pad_sequence(texts, batch_first=True)
+    texts = torch.nn.utils.rnn.pad_sequence(texts, batch_first=True).long()
     mels = torch.nn.utils.rnn.pad_sequence(mels, batch_first=True)
     mels = mels.transpose(1, 2)  # for some reason the existing code expects this format
 
