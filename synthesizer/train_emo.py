@@ -125,7 +125,7 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
     for i, session in enumerate(training_schedule):
         current_step = model.get_step()
 
-        r, lr, max_step, batch_size = session
+        r, lr, max_step, batch_size, batch_split = session
 
         training_steps = max_step - current_step
 
@@ -153,7 +153,7 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
 
         data_loader = DataLoader(dataset,
                                  collate_fn=partial(collate_fn, r=r),
-                                 batch_size=batch_size,
+                                 batch_size=batch_size // batch_split,
                                  num_workers=3 if platform.system().lower() == "linux" else 0,
                                  shuffle=True,
                                  pin_memory=True)
@@ -163,8 +163,9 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
         epochs = np.ceil(training_steps / steps_per_epoch).astype(np.int32)
 
         for epoch in range(1, epochs+1):
-            # for i, (texts, mels, embeds, idx) in enumerate(data_loader, 1):
+            optimizer.zero_grad()
             for i, (indices, texts, text_lengths, mels, mel_lengths, speaker_embeds, emotion_embeds) in enumerate(data_loader, 1):
+                epoch_step = (i + batch_split - 1) // batch_split
                 start_time = time.time()
 
                 # Generate stop tokens for training
@@ -175,7 +176,7 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
                 texts = texts.to(device)
                 mels = mels.to(device)
                 speaker_embeds = speaker_embeds.to(device)
-                emotion_embeds = speaker_embeds.to(emotion_embeds)
+                emotion_embeds = speaker_embeds.to(device)
                 stop = stop.to(device)
 
                 # Forward pass
@@ -185,17 +186,17 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
                 m2_loss = F.mse_loss(m2_hat, mels)
                 stop_loss = F.binary_cross_entropy(stop_pred, stop)
 
-                loss = m1_loss + m2_loss + stop_loss
+                loss = (m1_loss + m2_loss + stop_loss) / batch_split
 
-                optimizer.zero_grad()
                 loss.backward()
 
-                if hparams.tts_clip_grad_norm is not None:
-                    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), hparams.tts_clip_grad_norm)
-                    if np.isnan(grad_norm.cpu()):
-                        print("grad_norm was NaN!")
+                if i % batch_split == 0:
+                    if hparams.tts_clip_grad_norm is not None:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), hparams.tts_clip_grad_norm)
+                        if np.isnan(grad_norm.cpu()):
+                            print("grad_norm was NaN!")
 
-                optimizer.step()
+                    optimizer.step()
 
                 time_window.append(time.time() - start_time)
                 loss_window.append(loss.item())
@@ -203,7 +204,7 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
                 step = model.get_step()
                 k = step // 1000
 
-                msg = f"| Epoch: {epoch}/{epochs} ({i}/{steps_per_epoch}) | Loss: {loss_window.average:#.4} | {1./time_window.average:#.2} steps/s | Step: {k}k | "
+                msg = f"| Epoch: {epoch}/{epochs} ({epoch_step}/{steps_per_epoch}) | Loss: {loss_window.average:#.4} | {1./time_window.average:#.2} steps/s | Step: {k}k | "
                 stream(msg)
 
                 # Backup or save model as appropriate
@@ -217,7 +218,7 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
                     model.save(weights_fpath, optimizer)
 
                 # Evaluate model to generate samples
-                epoch_eval = eval_every == -1 and i == steps_per_epoch  # If epoch is done
+                epoch_eval = eval_every == -1 and i == len(data_loader)  # If epoch is done
                 step_eval = eval_every > 0 and step % eval_every == 0  # Every N steps
                 if epoch_eval or step_eval:
                     for sample_idx in range(hparams.tts_eval_num_samples):
@@ -291,10 +292,10 @@ if __name__ == "__main__":
         run_id="test1",
         data_paths=data_paths,
         models_dir=Path("synthesizer/saved_models/"),
-        training_schedule=[  # (r, lr, step, batch_size)
-            (2,  1e-4, 40_000,  12),
-            (2,  3e-5, 80_000,  12),
-            (2,  1e-5, 160_000,  12)
+        training_schedule=[  # (r, lr, step, batch_size, batch_split)
+            (2,  1e-4, 40_000,  12, 2),
+            (2,  3e-5, 80_000,  12, 2),
+            (2,  1e-5, 160_000,  12, 2)
         ],
         eval_every=500,
         save_every=5000,
