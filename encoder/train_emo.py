@@ -57,7 +57,7 @@ def collate_fn(batch):
     return ids, inputs, labels, texts, lengths
 
 
-def train(run_id: str, epoch: int, train_meta_path: Path, dev_meta_path: Path, test_meta_path: Path, 
+def train(run_id: str, epoch: int, learning_rate: float, train_meta_path: Path, dev_meta_path: Path, test_meta_path: Path, 
           models_dir: Path, save_every: int, backup_every: int, eval_every: int, force_restart: bool):
     """Trains the EmoEncoder model on IEMOCAP dataset"""
 
@@ -84,7 +84,7 @@ def train(run_id: str, epoch: int, train_meta_path: Path, dev_meta_path: Path, t
 
     # Create the model and the optimizer
     model = EmoEncoder(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate_init)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     loss_fn = nn.CrossEntropyLoss().to(device)
     init_step = 1
     
@@ -102,8 +102,8 @@ def train(run_id: str, epoch: int, train_meta_path: Path, dev_meta_path: Path, t
                 checkpoint = torch.load(state_fpath)
             init_step = checkpoint["step"]
             model.load_state_dict(checkpoint["model_state"], strict=False)
-            optimizer.load_state_dict(checkpoint["optimizer_state"])
-            optimizer.param_groups[0]["lr"] = learning_rate_init
+            # optimizer.load_state_dict(checkpoint["optimizer_state"])
+            # optimizer.param_groups[0]["lr"] = learning_rate
         else:
             print("No model \"%s\" found, starting training from scratch." % run_id)
     else:
@@ -166,13 +166,14 @@ if __name__ == "__main__":
     train(
         run_id="transfer_1",
         epoch=3000,
+        learning_rate=2e-5,
         train_meta_path=Path("iemocap_meta_train.csv"),
         dev_meta_path=Path("iemocap_meta_dev.csv"),
         test_meta_path=Path("iemocap_meta_test.csv"),
         models_dir=Path("encoder/saved_models/"),
-        eval_every=500,
-        save_every=5000,
-        backup_every=20000,
+        eval_every=300,
+        save_every=3000,
+        backup_every=10000,
         force_restart=False
     )
 
