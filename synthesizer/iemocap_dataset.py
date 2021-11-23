@@ -26,7 +26,7 @@ class IemocapSynthesizerDataset(Dataset):
             index = index[0]
 
         meta = self.meta_data.iloc[index]
-        mel = np.load(meta['m_file'], allow_pickle=True).astype(np.float32)
+        mel = np.load(meta['synthesizer_m_file'], allow_pickle=True).astype(np.float32)
         
         # Load the embed
         speaker_embed = self.speaker_embeds[index].astype(np.float32)
@@ -38,16 +38,16 @@ class IemocapSynthesizerDataset(Dataset):
         # Convert the list returned by text_to_sequence to a numpy array
         text = np.asarray(text).astype(np.int32)
 
-        return torch.from_numpy(text), torch.from_numpy(mel), torch.from_numpy(speaker_embed), torch.from_numpy(emotion_embed)
+        return index, torch.from_numpy(text), torch.from_numpy(mel), torch.from_numpy(speaker_embed), torch.from_numpy(emotion_embed)
 
     def __len__(self):
         return len(self.meta_data)
 
 
-def collate_fn(batch):
+def collate_fn(batch, r):
     """Collates a batch of padded variable length inputs"""
 
-    texts, mels, speaker_embeds, emotion_embeds = zip(*batch)
+    indices, texts, mels, speaker_embeds, emotion_embeds = zip(*batch)
 
     # get sequence lengths
     text_lengths = torch.tensor([x.shape[0] for x in texts])
@@ -56,12 +56,18 @@ def collate_fn(batch):
     # padding
     texts = torch.nn.utils.rnn.pad_sequence(texts, batch_first=True)
     mels = torch.nn.utils.rnn.pad_sequence(mels, batch_first=True)
+    mels = mels.transpose(1, 2)  # for some reason the existing code expects this format
+
+    if mels.shape[2] % r != 0:  # for some reson this is done in the existing code
+        pad = r - mels.shape[2] % r
+        pad = torch.zeros([mels.shape[0], mels.shape[1], pad])
+        mels = torch.cat([mels, pad], dim=2)
 
     # collate the embeddings
-    speaker_embeds = torch.cat(speaker_embeds, dim=0)
-    emotion_embeds = torch.cat(emotion_embeds, dim=0)
+    speaker_embeds = torch.stack(speaker_embeds, dim=0)
+    emotion_embeds = torch.stack(emotion_embeds, dim=0)
 
-    return texts, text_lengths, mels, mel_lengths, speaker_embeds, emotion_embeds
+    return indices, texts, text_lengths, mels, mel_lengths, speaker_embeds, emotion_embeds
 
 
 # from synthesizer.iemocap_dataset import IemocapSynthesizerDataset

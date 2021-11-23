@@ -150,7 +150,7 @@ def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
                                  # collate_fn=lambda batch: collate_synthesizer(batch, r, hparams),
                                  collate_fn=partial(collate_synthesizer, r=r, hparams=hparams),
                                  batch_size=batch_size,
-                                 num_workers=2 if platform.system() != "Windows" else 0,
+                                 num_workers=3 if platform.system().lower() == "linux" else 0,
                                  shuffle=True,
                                  pin_memory=True)
 

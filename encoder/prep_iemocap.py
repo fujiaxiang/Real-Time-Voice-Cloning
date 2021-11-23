@@ -42,7 +42,7 @@ def proc_cat_file(fp, labels):
                 labels[uttid] = [cat]
 
 
-def wav_to_mel(fp):
+def wav_to_mel(fp, mel_n_channels):
     """Preprocess a wav file and converts it to mel spectrogram in numpy array"""
     wav = audio.preprocess_wav(fp)
 
@@ -50,7 +50,7 @@ def wav_to_mel(fp):
         return None
 
     # Create the mel spectrogram, discard those that are too short
-    frames = audio.wav_to_mel_spectrogram(wav)
+    frames = audio.wav_to_mel_spectrogram(wav, mel_n_channels)
     if len(frames) < partials_n_frames:
         return None
 
@@ -95,6 +95,7 @@ df['labels'] = df['uttid'].map(labels)
 df = df.dropna()
 
 
+# Generating mel spectrograms for encoder
 output_dir = Path("data/iemocap/encoder/mel")
 output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -103,7 +104,7 @@ output_dir.mkdir(parents=True, exist_ok=True)
 m_files = []
 for _, row in tqdm(df.iterrows(), total=len(df)):
     w_file = row['w_file']
-    mel = wav_to_mel(w_file)
+    mel = wav_to_mel(w_file, mel_n_channels=40)
 
     if mel is None:
         m_files.append(np.nan)
@@ -114,6 +115,29 @@ for _, row in tqdm(df.iterrows(), total=len(df)):
 
 # Record the paths to generated mel spectrogram arrays
 df['m_file'] = m_files
+
+
+# Generating mel spectrograms for synthesizer
+# The only difference is the number of channels
+output_dir = Path("data/iemocap/synthesizer/mel")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+
+# Generates mel spectrogram arrays from wav files
+m_files = []
+for _, row in tqdm(df.iterrows(), total=len(df)):
+    w_file = row['w_file']
+    mel = wav_to_mel(w_file, mel_n_channels=80)
+
+    if mel is None:
+        m_files.append(np.nan)
+    else:
+        out_fpath = output_dir.joinpath(row['uttid'] + '.npy')
+        np.save(out_fpath, mel)
+        m_files.append(out_fpath)
+
+# Record the paths to generated mel spectrogram arrays
+df['synthesizer_m_file'] = m_files
 
 
 df = df.explode('labels').drop_duplicates('uttid')

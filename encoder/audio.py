@@ -50,7 +50,7 @@ def preprocess_wav(fpath_or_wav: Union[str, Path, np.ndarray],
     return wav
 
 
-def wav_to_mel_spectrogram(wav):
+def wav_to_mel_spectrogram(wav, mel_n_channels=mel_n_channels):
     """
     Derives a mel spectrogram ready to be used by the encoder from a preprocessed audio waveform.
     Note: this not a log-mel spectrogram.
