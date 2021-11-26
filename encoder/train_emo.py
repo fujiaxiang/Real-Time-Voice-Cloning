@@ -109,6 +109,7 @@ def train(run_id: str, epoch: int, learning_rate: float, train_meta_path: Path, 
     else:
         print("Starting the training from scratch.")
 
+    total, total_loss = 0, 0
     step = init_step
     for e in range(epoch):
         print(f"Training epoch {e}/{epoch}:")
@@ -127,6 +128,8 @@ def train(run_id: str, epoch: int, learning_rate: float, train_meta_path: Path, 
 
             # Compute loss
             loss = loss_fn(pred, labels)
+            total += labels.size(0)
+            total_loss += loss.item() * labels.size(0)
 
             # Backward pass
             model.zero_grad()
@@ -134,8 +137,11 @@ def train(run_id: str, epoch: int, learning_rate: float, train_meta_path: Path, 
             optimizer.step()
 
             if eval_every != 0 and step % eval_every == 0:
+                aver_loss = total_loss / total
+                total, total_loss = 0, 0
+
                 metrics = evaluate(model, dev_loader, loss_fn, device)
-                writer.add_scalar('Loss/train', loss.item(), step)
+                writer.add_scalar('Loss/train', aver_loss, step)
                 writer.add_scalar('Loss/dev', metrics['loss'], step)
                 writer.add_scalar('Accuracy/dev', metrics['accuracy'], step)
 

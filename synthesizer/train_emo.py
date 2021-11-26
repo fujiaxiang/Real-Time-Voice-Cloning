@@ -103,7 +103,24 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
             checkpoint = torch.load(weights_fpath)
 
         if transfer:
-            model.load_state_dict(checkpoint["model_state"], strict=False)
+            # Make the necessary changes to reuse weights of speaker encoder for emotion encoder
+            w = checkpoint['model_state']['encoder_proj.weight']
+            w = torch.cat([w, w[:, -256:]], dim=-1)
+            checkpoint['model_state']['encoder_proj.weight'] = w
+
+            w = checkpoint['model_state']['decoder.attn_rnn.weight_ih']
+            w = torch.cat([w, w[:, -256:]], dim=-1)
+            checkpoint['model_state']['decoder.attn_rnn.weight_ih'] = w
+
+            w = checkpoint['model_state']['decoder.rnn_input.weight']
+            w = torch.cat([w, w[:, -256:]], dim=-1)
+            checkpoint['model_state']['decoder.rnn_input.weight'] = w
+
+            w = checkpoint['model_state']['decoder.stop_proj.weight']
+            w = torch.cat([w[:, :512], w[:, 256:]], dim=-1)
+            checkpoint['model_state']['decoder.stop_proj.weight'] = w
+
+            model.load_state_dict(checkpoint["model_state"], strict=True)
         else:
             model.load_state_dict(checkpoint["model_state"], strict=True)
             optimizer.load_state_dict(checkpoint["optimizer_state"])
@@ -162,6 +179,7 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
         steps_per_epoch = np.ceil(total_iters / batch_size).astype(np.int32)
         epochs = np.ceil(training_steps / steps_per_epoch).astype(np.int32)
 
+        total, total_loss = 0, 0
         for epoch in range(1, epochs+1):
             optimizer.zero_grad()
             for i, (indices, texts, text_lengths, mels, mel_lengths, speaker_embeds, emotion_embeds) in enumerate(data_loader, 1):
@@ -189,6 +207,8 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
                 loss = (m1_loss + m2_loss + stop_loss) / batch_split
 
                 loss.backward()
+                total += texts.size(0)
+                total_loss += loss.item() * texts.size(0)
 
                 if i % batch_split == 0:
                     if hparams.tts_clip_grad_norm is not None:
@@ -221,6 +241,10 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
                 epoch_eval = eval_every == -1 and i == len(data_loader)  # If epoch is done
                 step_eval = eval_every > 0 and step % eval_every == 0  # Every N steps
                 if epoch_eval or step_eval:
+                    aver_loss = total_loss / total
+                    total, total_loss = 0, 0
+                    writer.add_scalar('Loss/train', aver_loss, step)
+
                     for sample_idx in range(hparams.tts_eval_num_samples):
                         # At most, generate samples equal to number in the batch
                         if sample_idx + 1 <= len(texts):
@@ -289,13 +313,10 @@ if __name__ == "__main__":
     data_paths = {k: Path(v) for k, v in data_paths.items()}
 
     train(
-        run_id="synthesizer_1",
+        run_id="synthesizer_3",
         data_paths=data_paths,
         models_dir=Path("synthesizer/saved_models/"),
         training_schedule=[  # (r, lr, step, batch_size, batch_split)
-            (2,  1e-3,  20_000,  12, 2),
-            (2,  5e-4,  40_000,  12, 2),
-            (2,  2e-4,  80_000,  12, 2),
             (2,  1e-4, 160_000,  12, 2),
             (2,  3e-5, 320_000,  12, 2),
             (2,  1e-5, 640_000,  12, 2)
