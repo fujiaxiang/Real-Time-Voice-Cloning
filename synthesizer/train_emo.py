@@ -317,13 +317,13 @@ if __name__ == "__main__":
         data_paths=data_paths,
         models_dir=Path("synthesizer/saved_models/"),
         training_schedule=[  # (r, lr, step, batch_size, batch_split)
-            (2,  1e-4, 20_000,  12, 2),
-            (2,  3e-5, 40_000,  12, 2),
-            (2,  1e-5, 80_000,  12, 2)
+            (2,  1e-4, 4_000,  12, 2),
+            (2,  3e-5, 8_000,  12, 2),
+            (2,  1e-5, 16_000,  12, 2)
         ],
-        eval_every=500,
-        save_every=5000,
-        backup_every=20000,
+        eval_every=200,
+        save_every=1000,
+        backup_every=500,
         force_restart=False,
         transfer=True
     )
