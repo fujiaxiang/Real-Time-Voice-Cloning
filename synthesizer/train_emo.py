@@ -104,6 +104,8 @@ def train(run_id: str, data_paths: dict, models_dir: Path, training_schedule: li
 
         if transfer:
             # Make the necessary changes to reuse weights of speaker encoder for emotion encoder
+            checkpoint['model_state']['step'] = checkpoint['model_state']['step'] * 0
+
             w = checkpoint['model_state']['encoder_proj.weight']
             w = torch.cat([w, w[:, -256:]], dim=-1)
             checkpoint['model_state']['encoder_proj.weight'] = w
@@ -321,7 +323,7 @@ if __name__ == "__main__":
             (2,  3e-5, 8_000,  12, 2),
             (2,  1e-5, 16_000,  12, 2)
         ],
-        eval_every=200,
+        eval_every=10,
         save_every=1000,
         backup_every=500,
         force_restart=False,
@@ -330,3 +332,7 @@ if __name__ == "__main__":
 
 
 # python -m synthesizer.train_emo
+
+# rm synthesizer/saved_models/synthesizer_3 -r
+# cp synthesizer/saved_models/pretrained/ synthesizer/saved_models/synthesizer_3 -r
+# mv synthesizer/saved_models/synthesizer_3/pretrained.pt synthesizer/saved_models/synthesizer_3/synthesizer_3.pt
