@@ -38,7 +38,8 @@ def create_embeddings(model, loader, enc_type='speaker'):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 speaker_enc_path = Path("encoder/saved_models/pretrained.pt")
-emotion_enc_path = Path("encoder/saved_models/test2_backups/test2_bak_180000.pt")
+# emotion_enc_path = Path("encoder/saved_models/test2_backups/test2_bak_180000.pt")
+emotion_enc_path = Path("encoder/saved_models/transfer_1_backups/transfer_1_bak_1670000.pt")
 
 
 speaker_enc = SpeakerEncoder(device, torch.device("cpu"))
