@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from encoder.data_objects import IemocapDataset
 from encoder.params_model import *
-from encoder.emo_models import EmoEncoder
+from encoder.emo_models import EmoEncoder, StackedBiLSTMEmoEncoder
 
 
 def evaluate(model, loader, loss_fn, device):
@@ -83,7 +83,7 @@ def train(run_id: str, epoch: int, learning_rate: float, train_meta_path: Path, 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Create the model and the optimizer
-    model = EmoEncoder(device)
+    model = StackedBiLSTMEmoEncoder(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     loss_fn = nn.CrossEntropyLoss().to(device)
     init_step = 1
@@ -170,9 +170,9 @@ def train(run_id: str, epoch: int, learning_rate: float, train_meta_path: Path, 
 
 if __name__ == "__main__":
     train(
-        run_id="transfer_1",
+        run_id="bilstm_1",
         epoch=3000,
-        learning_rate=2e-5,
+        learning_rate=5e-5,
         train_meta_path=Path("iemocap_meta_train.csv"),
         dev_meta_path=Path("iemocap_meta_dev.csv"),
         test_meta_path=Path("iemocap_meta_test.csv"),

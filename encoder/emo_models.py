@@ -46,3 +46,40 @@ class EmoEncoder(nn.Module):
         pred = self.linear_cls(embeds)
 
         return embeds, pred
+
+
+class StackedBiLSTMEmoEncoder(nn.Module):
+    def __init__(self, device):
+        super(StackedBiLSTMEmoEncoder, self).__init__()
+        self.device = device
+
+        self.lstm1 = nn.LSTM(input_size=mel_n_channels,
+                             hidden_size=512,
+                             bidirectional=True,
+                             batch_first=True).to(device)
+
+        self.lstm2 = nn.LSTM(input_size=1024,
+                             hidden_size=256,
+                             bidirectional=True,
+                             batch_first=True).to(device)
+
+        self.linear = nn.Linear(in_features=512,
+                                out_features=512).to(device)
+        self.tanh = nn.Tanh().to(device)
+
+        self.linear_cls = nn.Linear(in_features=512,
+                                    out_features=len(emo_categories)).to(device)
+
+    def forward(self, utterances, hidden_init=None):
+        o, _ = self.lstm1(utterances, hidden_init)
+
+        o, (h, c) = self.lstm2(o)
+
+        # Take the hidden state of last layers and concatenate the two directions
+        h = torch.transpose(h[-2:], 0, 1)
+        h = h.reshape([h.shape[0], -1])
+        embeds = self.tanh(self.linear(h))
+
+        pred = self.linear_cls(embeds)
+
+        return embeds, pred
