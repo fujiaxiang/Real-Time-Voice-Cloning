@@ -1,7 +1,7 @@
 import torch
 from synthesizer import audio
 from synthesizer.hparams import hparams
-from synthesizer.models.tacotron import Tacotron
+from synthesizer.models.emo_models import MultispeakerEmotionalSynthesizer
 from synthesizer.utils.symbols import symbols
 from synthesizer.utils.text import text_to_sequence
 from vocoder.display import simple_table
@@ -46,7 +46,7 @@ class Synthesizer:
         """
         Instantiates and loads the model given the weights file that was passed in the constructor.
         """
-        self._model = Tacotron(embed_dims=hparams.tts_embed_dims,
+        self._model = MultispeakerEmotionalSynthesizer(embed_dims=hparams.tts_embed_dims,
                                num_chars=len(symbols),
                                encoder_dims=hparams.tts_encoder_dims,
                                decoder_dims=hparams.tts_decoder_dims,
@@ -59,7 +59,8 @@ class Synthesizer:
                                num_highways=hparams.tts_num_highways,
                                dropout=hparams.tts_dropout,
                                stop_threshold=hparams.tts_stop_threshold,
-                               speaker_embedding_size=hparams.speaker_embedding_size).to(self.device)
+                               speaker_embedding_size=hparams.speaker_embedding_size,
+                               emotion_embedding_size=hparams.speaker_embedding_size).to(self.device)
 
         self._model.load(self.model_fpath)
         self._model.eval()
